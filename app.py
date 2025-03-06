@@ -39,10 +39,9 @@ def init_db():
         """)
         conn.commit()
         conn.close()
-        st.write("Database initialized successfully.")  # Debug message
     except sqlite3.OperationalError as e:
         st.error(f"SQLite OperationalError: {str(e)}")
-        raise  # Re-raise the exception to halt execution and log it
+        raise
     except Exception as e:
         st.error(f"Unexpected error during database initialization: {str(e)}")
         raise
@@ -316,12 +315,7 @@ def main():
             if st.button("Dashboard", key="dash_sidebar"):
                 st.session_state.page_state = "dashboard"
                 st.rerun()
-            if st.button("Policy Inquiry", key="policy_sidebar"):
-                st.session_state.page_state = "policy_inquiry"
-                st.rerun()
-            if st.button("Denied Inquiry", key="denied_sidebar"):
-                st.session_state.page_state = "denied_inquiry"
-                st.rerun()
+            # Removed Policy Inquiry and Denied Inquiry buttons from sidebar
             if st.button("Logout", key="logout_sidebar"):
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
