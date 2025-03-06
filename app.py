@@ -273,7 +273,6 @@ def main():
                         if st.form_submit_button("Back"):
                             st.session_state.page_state = "home"
                             st.rerun()
-                # Replaced the non-working HTML link with a Streamlit button
                 if st.button("Not registered? Sign up here", key="signup_link"):
                     st.session_state.page_state = "signup"
                     st.rerun()
