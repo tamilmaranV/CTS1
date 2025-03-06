@@ -42,7 +42,7 @@ def init_db():
             age INTEGER NOT NULL,
             gender TEXT NOT NULL,
             mobile_number TEXT NOT NULL,
-            dob TEXT NOT NULL,
+            dob TEXT NOT NULL,  -- Store as TEXT in dd.mm.yyyy format
             place TEXT NOT NULL,
             insurance_policy TEXT NOT NULL,
             timestamp TEXT NOT NULL
@@ -96,10 +96,12 @@ def update_password(email, new_password):
 def save_policy_inquiry(name, age, gender, mobile_number, dob, place, insurance_policy):
     with get_db_connection() as conn:
         cursor = conn.cursor()
+        # Ensure dob is stored in dd.mm.yyyy format
+        dob_formatted = dob  # Already in dd.mm.yyyy from text input
         cursor.execute("""
             INSERT INTO policy_inquiries (name, age, gender, mobile_number, dob, place, insurance_policy, timestamp)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (name, age, gender, mobile_number, str(dob), place, insurance_policy, str(datetime.now())))
+        """, (name, age, gender, mobile_number, dob_formatted, place, insurance_policy, str(datetime.now())))
         conn.commit()
     st.success(f"Recommended Policy: {'Basic Health Insurance' if age < 30 else 'Comprehensive Health Insurance'}")
 
@@ -395,12 +397,15 @@ def main():
                     age = st.number_input("Age", min_value=0, max_value=150, step=1)
                     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
                     mobile_number = st.text_input("Mobile Number", placeholder="10-digit number")
-                    dob = st.date_input("Date of Birth")
+                    # Changed to text input for dd.mm.yyyy format
+                    dob = st.text_input("Date of Birth (dd.mm.yyyy)", placeholder="e.g., 25.12.1990")
                     place = st.text_input("Place", placeholder="Enter your location")
                     insurance_policy = st.text_area("Insurance Policy Details", placeholder="Describe your policy")
                     if st.form_submit_button("Submit"):
                         if not re.match(r"^\d{10}$", mobile_number):
                             st.error("Mobile number must be 10 digits.")
+                        elif not re.match(r"^\d{2}\.\d{2}\.\d{4}$", dob):
+                            st.error("Date of Birth must be in dd.mm.yyyy format.")
                         elif all([name, age, gender, mobile_number, dob, place, insurance_policy]):
                             save_policy_inquiry(name, age, gender, mobile_number, dob, place, insurance_policy)
                         else:
