@@ -12,7 +12,7 @@ import google.generativeai as genai
 # --- Configuration ---
 SENDER_EMAIL = os.getenv("SENDER_EMAIL", "techsolidershelpdeskcustomer@gmail.com")
 SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "ildy bkzr zukv iqxu")
-GEMINI_API_KEY = "AIzaSyBSUhW8vDUciNaouWaA-i8-lZPFuGPuEtU"  # Your provided API key
+GEMINI_API_KEY = "AIzaSyBSUhW8vDUciNaouWaA-i8-lZPFuGPuEtU"  # New API key
 
 # Configure the Google Generative AI API
 genai.configure(api_key=GEMINI_API_KEY)
@@ -147,28 +147,25 @@ def send_reset_code_email(email, reset_code):
         st.error(f"Failed to send email: {e}")
         return False
 
-# --- Chatbot Logic (Using Gemini API) ---
+# --- Chatbot Logic (Using Google Generative AI) ---
 def gemini_response(user_input, chat_history):
     try:
         # Define the system prompt
         system_prompt = """
         You are a Patient Helpdesk Assistant specialized in insurance policies, claims, and denials. Provide helpful, accurate, and concise responses related to health insurance inquiries, policy details, claim processes, and denial reasons (e.g., 'Insufficient documentation', 'Policy expired'). Focus on policies like Basic Health Insurance and Comprehensive Health Insurance, and assist with resolving denied claims. If the user asks about unrelated topics, politely redirect them to insurance-related queries.
         """
-
-        # Prepare the conversation history
-        messages = [{"role": "system", "content": system_prompt}]
-        for msg in chat_history:
-            messages.append({"role": msg["role"], "content": msg["content"]})
-        messages.append({"role": "user", "content": user_input})
-
-        # Initialize the Gemini model (assuming a model like 'gemini-pro' or similar)
-        model = genai.GenerativeModel('gemini-pro')  # Replace with actual model name if different
-        response = model.generate_content(messages[-1]["content"])  # Pass only user input for simplicity
+        
+        # Combine system prompt with user input for simplicity
+        full_prompt = f"{system_prompt}\n\nUser: {user_input}"
+        
+        # Initialize the model (using text-bison-001 as a known PaLM model)
+        model = genai.GenerativeModel('text-bison-001')
+        response = model.generate_content(full_prompt)
         
         # Return the generated response
         return response.text.strip()
     except Exception as e:
-        st.error(f"Error with Gemini API: {e}")
+        st.error(f"Error with Google Generative AI API: {str(e)}")
         return "Sorry, I couldn’t process your request due to an API error. Please try again."
 
 # --- Session State Initialization ---
@@ -446,7 +443,7 @@ def main():
 
         with st.container():
             st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-            st.markdown("**Patient Assistant (Powered by Gemini)**", unsafe_allow_html=True)
+            st.markdown("**Patient Assistant (Powered by Google AI)**", unsafe_allow_html=True)
             for message in st.session_state.chat_history:
                 if message["role"] == "user":
                     st.markdown(f'<div class="chat-message user-message">{message["content"]}</div>', unsafe_allow_html=True)
@@ -464,7 +461,7 @@ def main():
                         st.warning("Please enter a message.")
             st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="footer">© 2025 Patient Helpdesk | Powered by xAI & Gemini</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">© 2025 Patient Helpdesk | Powered by xAI & Google AI</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
