@@ -17,10 +17,6 @@ GEMINI_API_KEY = "AIzaSyBSUhW8vDUciNaouWaA-i8-lZPFuGPuEtU"  # New API key
 # Configure the Google Generative AI API
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Ensure denied_documents folder exists
-if not os.path.exists("denied_documents"):
-    os.makedirs("denied_documents")
-
 # --- Database Functions ---
 def get_db_connection():
     conn = sqlite3.connect("patient_helpdesk.db")
@@ -38,31 +34,6 @@ def init_db():
             dob TEXT NOT NULL,
             age INTEGER NOT NULL,
             password TEXT NOT NULL
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS policy_inquiries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            age INTEGER NOT NULL,
-            gender TEXT NOT NULL,
-            mobile_number TEXT NOT NULL,
-            dob TEXT NOT NULL,
-            place TEXT NOT NULL,
-            insurance_policy TEXT NOT NULL,
-            timestamp TEXT NOT NULL
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS denied_inquiries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_name TEXT NOT NULL,
-            patient_id TEXT NOT NULL,
-            policy_id TEXT NOT NULL,
-            policy_name TEXT NOT NULL,
-            denial_reason TEXT NOT NULL,
-            document_path TEXT,
-            timestamp TEXT NOT NULL
         )
     """)
     conn.commit()
@@ -98,29 +69,6 @@ def update_password(email, new_password):
         cursor.execute("UPDATE users SET password = ? WHERE email = ?", (hashed_password, email))
         conn.commit()
 
-def save_policy_inquiry(name, age, gender, mobile_number, dob, place, insurance_policy):
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        dob_formatted = dob
-        cursor.execute("""
-            INSERT INTO policy_inquiries (name, age, gender, mobile_number, dob, place, insurance_policy, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (name, age, gender, mobile_number, dob_formatted, place, insurance_policy, str(datetime.now())))
-        conn.commit()
-    st.success(f"Recommended Policy: {'Basic Health Insurance' if age < 30 else 'Comprehensive Health Insurance'}")
-
-def save_denied_inquiry(patient_name, patient_id, policy_id, policy_name, denial_reason, document_path=None):
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO denied_inquiries (patient_name, patient_id, policy_id, policy_name, denial_reason, document_path, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (patient_name, patient_id, policy_id, policy_name, denial_reason, document_path, str(datetime.now())))
-        conn.commit()
-    st.warning(f"Denial Reason: {denial_reason}")
-    if document_path:
-        st.success("Document uploaded successfully.")
-
 # Initialize database
 init_db()
 
@@ -150,19 +98,12 @@ def send_reset_code_email(email, reset_code):
 # --- Chatbot Logic (Using Google Generative AI) ---
 def gemini_response(user_input, chat_history):
     try:
-        # Define the system prompt
         system_prompt = """
         You are a Patient Helpdesk Assistant specialized in insurance policies, claims, and denials. Provide helpful, accurate, and concise responses related to health insurance inquiries, policy details, claim processes, and denial reasons (e.g., 'Insufficient documentation', 'Policy expired'). Focus on policies like Basic Health Insurance and Comprehensive Health Insurance, and assist with resolving denied claims. If the user asks about unrelated topics, politely redirect them to insurance-related queries.
         """
-        
-        # Combine system prompt with user input for simplicity
         full_prompt = f"{system_prompt}\n\nUser: {user_input}"
-        
-        # Initialize the model (using text-bison-001 as a known PaLM model)
         model = genai.GenerativeModel('text-bison-001')
         response = model.generate_content(full_prompt)
-        
-        # Return the generated response
         return response.text.strip()
     except Exception as e:
         st.error(f"Error with Google Generative AI API: {str(e)}")
@@ -382,64 +323,13 @@ def main():
 
         if st.session_state.page_state == "dashboard":
             st.markdown('<div class="header">Dashboard</div>', unsafe_allow_html=True)
-            st.markdown('<div class="subheader">Explore Your Options</div>', unsafe_allow_html=True)
-            st.markdown('<div class="button-container">', unsafe_allow_html=True)
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if st.button("Policy Inquiry", key="policy_dash"):
-                    st.session_state.page_state = "policy_inquiry"
-                    st.rerun()
-            with col2:
-                if st.button("Denied Inquiry", key="denied_dash"):
-                    st.session_state.page_state = "denied_inquiry"
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('<div class="subheader">Chat with Your Assistant</div>', unsafe_allow_html=True)
 
         elif st.session_state.page_state == "policy_inquiry":
             st.markdown('<div class="subheader">Policy Inquiry</div>', unsafe_allow_html=True)
-            with st.container():
-                st.markdown('<div class="form-container">', unsafe_allow_html=True)
-                with st.form("policy_form"):
-                    name = st.text_input("Name", placeholder="Enter your name")
-                    age = st.number_input("Age", min_value=0, max_value=150, step=1)
-                    gender = st.selectbox("Gender", ["Male", "Female", "Other"])
-                    mobile_number = st.text_input("Mobile Number", placeholder="10-digit number")
-                    dob = st.text_input("Date of Birth (dd.mm.yyyy)", placeholder="e.g., 25.12.1990")
-                    place = st.text_input("Place", placeholder="Enter your location")
-                    insurance_policy = st.text_area("Insurance Policy Details", placeholder="Describe your policy")
-                    if st.form_submit_button("Submit"):
-                        if not re.match(r"^\d{10}$", mobile_number):
-                            st.error("Mobile number must be 10 digits.")
-                        elif not re.match(r"^\d{2}\.\d{2}\.\d{4}$", dob):
-                            st.error("Date of Birth must be in dd.mm.yyyy format.")
-                        elif all([name, age, gender, mobile_number, dob, place, insurance_policy]):
-                            save_policy_inquiry(name, age, gender, mobile_number, dob, place, insurance_policy)
-                        else:
-                            st.error("All fields are required.")
-                st.markdown('</div>', unsafe_allow_html=True)
 
         elif st.session_state.page_state == "denied_inquiry":
             st.markdown('<div class="subheader">Denied Inquiry</div>', unsafe_allow_html=True)
-            with st.container():
-                st.markdown('<div class="form-container">', unsafe_allow_html=True)
-                with st.form("denied_form"):
-                    patient_name = st.text_input("Patient Name", placeholder="Enter patient name")
-                    patient_id = st.text_input("Patient ID", placeholder="Enter patient ID")
-                    policy_id = st.text_input("Policy ID", placeholder="Enter policy ID")
-                    policy_name = st.text_input("Policy Name", placeholder="Enter policy name")
-                    document = st.file_uploader("Attach Document", type=["pdf", "png", "jpg", "txt"])
-                    if st.form_submit_button("Submit"):
-                        if all([patient_name, patient_id, policy_id, policy_name]):
-                            denial_reason = "Insufficient documentation" if len(patient_id) < 5 else "Policy expired"
-                            document_path = None
-                            if document:
-                                document_path = f"denied_documents/{patient_id}_{policy_id}_{document.name}"
-                                with open(document_path, "wb") as f:
-                                    f.write(document.getbuffer())
-                            save_denied_inquiry(patient_name, patient_id, policy_id, policy_name, denial_reason, document_path)
-                        else:
-                            st.error("All fields are required.")
-                st.markdown('</div>', unsafe_allow_html=True)
 
         with st.container():
             st.markdown('<div class="chat-container">', unsafe_allow_html=True)
