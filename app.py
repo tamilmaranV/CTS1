@@ -12,7 +12,7 @@ import google.generativeai as genai
 # --- Configuration ---
 SENDER_EMAIL = os.getenv("SENDER_EMAIL", "techsolidershelpdeskcustomer@gmail.com")
 SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "ildy bkzr zukv iqxu")
-GEMINI_API_KEY = "AIzaSyCQZEliMAnf0aCzv1Dl2Wbyp-OY_Fm8HfM"  # Your provided API key
+GEMINI_API_KEY = "AIzaSyBSUhW8vDUciNaouWaA-i8-lZPFuGPuEtU"  # Your provided API key
 
 # Configure the Google Generative AI API
 genai.configure(api_key=GEMINI_API_KEY)
