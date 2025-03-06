@@ -19,25 +19,33 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # --- Database Functions ---
 def get_db_connection():
-    conn = sqlite3.connect("patient_helpdesk.db")
+    conn = sqlite3.connect("patient_helpdesk.db", check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            dob TEXT NOT NULL,
-            age INTEGER NOT NULL,
-            password TEXT NOT NULL
-        )
-    """)
-    conn.commit()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                dob TEXT NOT NULL,
+                age INTEGER NOT NULL,
+                password TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+        conn.close()
+        st.write("Database initialized successfully.")  # Debug message
+    except sqlite3.OperationalError as e:
+        st.error(f"SQLite OperationalError: {str(e)}")
+        raise  # Re-raise the exception to halt execution and log it
+    except Exception as e:
+        st.error(f"Unexpected error during database initialization: {str(e)}")
+        raise
 
 def save_user(name, email, dob, age, password):
     with get_db_connection() as conn:
