@@ -31,7 +31,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
-            dob TEXT NOT NULL,
+            dob TEXT NOT NOT NULL,
             age INTEGER NOT NULL,
             password TEXT NOT NULL
         )
@@ -324,6 +324,8 @@ def main():
         if st.session_state.page_state == "dashboard":
             st.markdown('<div class="header">Dashboard</div>', unsafe_allow_html=True)
             st.markdown('<div class="subheader">Chat with Your Assistant</div>', unsafe_allow_html=True)
+            # Removed Policy Inquiry and Denied Inquiry buttons from dashboard
+            st.markdown('<div class="button-container"></div>', unsafe_allow_html=True)
 
         elif st.session_state.page_state == "policy_inquiry":
             st.markdown('<div class="subheader">Policy Inquiry</div>', unsafe_allow_html=True)
