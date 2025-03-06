@@ -7,10 +7,15 @@ import re
 import random
 import smtplib
 from email.mime.text import MIMEText
+import google.generativeai as genai
 
 # --- Configuration ---
 SENDER_EMAIL = os.getenv("SENDER_EMAIL", "techsolidershelpdeskcustomer@gmail.com")
 SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "ildy bkzr zukv iqxu")
+GEMINI_API_KEY = "AIzaSyCQZEliMAnf0aCzv1Dl2Wbyp-OY_Fm8HfM"  # Your provided API key
+
+# Configure the Google Generative AI API
+genai.configure(api_key=GEMINI_API_KEY)
 
 # Ensure denied_documents folder exists
 if not os.path.exists("denied_documents"):
@@ -42,7 +47,7 @@ def init_db():
             age INTEGER NOT NULL,
             gender TEXT NOT NULL,
             mobile_number TEXT NOT NULL,
-            dob TEXT NOT NULL,  -- Store as TEXT in dd.mm.yyyy format
+            dob TEXT NOT NULL,
             place TEXT NOT NULL,
             insurance_policy TEXT NOT NULL,
             timestamp TEXT NOT NULL
@@ -96,8 +101,7 @@ def update_password(email, new_password):
 def save_policy_inquiry(name, age, gender, mobile_number, dob, place, insurance_policy):
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        # Ensure dob is stored in dd.mm.yyyy format
-        dob_formatted = dob  # Already in dd.mm.yyyy from text input
+        dob_formatted = dob
         cursor.execute("""
             INSERT INTO policy_inquiries (name, age, gender, mobile_number, dob, place, insurance_policy, timestamp)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -143,23 +147,29 @@ def send_reset_code_email(email, reset_code):
         st.error(f"Failed to send email: {e}")
         return False
 
-# --- Chatbot Logic (Simulating Grok) ---
-def grok_response(user_input, chat_history):
-    system_prompt = """
-    You are a Patient Helpdesk Assistant specialized in insurance policies, claims, and denials. Provide helpful, accurate, and concise responses related to health insurance inquiries, policy details, claim processes, and denial reasons (e.g., 'Insufficient documentation', 'Policy expired'). Focus on policies like Basic Health Insurance and Comprehensive Health Insurance, and assist with resolving denied claims. If the user asks about unrelated topics, politely redirect them to insurance-related queries.
-    """
-    messages = [{"role": "system", "content": system_prompt}] + chat_history + [{"role": "user", "content": user_input}]
-    lower_input = user_input.lower()
-    if "policy" in lower_input and "basic" in lower_input:
-        return "Basic Health Insurance covers essentials like doctor visits and emergencies, ideal for those under 30."
-    elif "policy" in lower_input and "comprehensive" in lower_input:
-        return "Comprehensive Health Insurance offers broader coverage, including specialist care, suitable for those over 30."
-    elif "denied" in lower_input or "denial" in lower_input:
-        return "Claims are often denied due to 'Insufficient documentation' or 'Policy expired'. Check your submission details."
-    elif "claim" in lower_input:
-        return "To file a claim, submit your patient ID, policy number, and documents via the Denied Inquiry section."
-    else:
-        return "I’m here to help with insurance questions! Ask about policies, claims, or denials."
+# --- Chatbot Logic (Using Gemini API) ---
+def gemini_response(user_input, chat_history):
+    try:
+        # Define the system prompt
+        system_prompt = """
+        You are a Patient Helpdesk Assistant specialized in insurance policies, claims, and denials. Provide helpful, accurate, and concise responses related to health insurance inquiries, policy details, claim processes, and denial reasons (e.g., 'Insufficient documentation', 'Policy expired'). Focus on policies like Basic Health Insurance and Comprehensive Health Insurance, and assist with resolving denied claims. If the user asks about unrelated topics, politely redirect them to insurance-related queries.
+        """
+
+        # Prepare the conversation history
+        messages = [{"role": "system", "content": system_prompt}]
+        for msg in chat_history:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+        messages.append({"role": "user", "content": user_input})
+
+        # Initialize the Gemini model (assuming a model like 'gemini-pro' or similar)
+        model = genai.GenerativeModel('gemini-pro')  # Replace with actual model name if different
+        response = model.generate_content(messages[-1]["content"])  # Pass only user input for simplicity
+        
+        # Return the generated response
+        return response.text.strip()
+    except Exception as e:
+        st.error(f"Error with Gemini API: {e}")
+        return "Sorry, I couldn’t process your request due to an API error. Please try again."
 
 # --- Session State Initialization ---
 if 'logged_in' not in st.session_state:
@@ -397,7 +407,6 @@ def main():
                     age = st.number_input("Age", min_value=0, max_value=150, step=1)
                     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
                     mobile_number = st.text_input("Mobile Number", placeholder="10-digit number")
-                    # Changed to text input for dd.mm.yyyy format
                     dob = st.text_input("Date of Birth (dd.mm.yyyy)", placeholder="e.g., 25.12.1990")
                     place = st.text_input("Place", placeholder="Enter your location")
                     insurance_policy = st.text_area("Insurance Policy Details", placeholder="Describe your policy")
@@ -437,7 +446,7 @@ def main():
 
         with st.container():
             st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-            st.markdown("**Patient Assistant**", unsafe_allow_html=True)
+            st.markdown("**Patient Assistant (Powered by Gemini)**", unsafe_allow_html=True)
             for message in st.session_state.chat_history:
                 if message["role"] == "user":
                     st.markdown(f'<div class="chat-message user-message">{message["content"]}</div>', unsafe_allow_html=True)
@@ -448,14 +457,14 @@ def main():
                 if st.form_submit_button("Send"):
                     if chat_input:
                         st.session_state.chat_history.append({"role": "user", "content": chat_input})
-                        response = grok_response(chat_input, st.session_state.chat_history)
+                        response = gemini_response(chat_input, st.session_state.chat_history)
                         st.session_state.chat_history.append({"role": "assistant", "content": response})
                         st.rerun()
                     else:
                         st.warning("Please enter a message.")
             st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="footer">© 2025 Patient Helpdesk | Powered by xAI</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">© 2025 Patient Helpdesk | Powered by xAI & Gemini</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
