@@ -312,7 +312,7 @@ def main():
     else:
         with st.sidebar:
             st.markdown(f"**Welcome, {st.session_state.user_email.split('@')[0]}**", unsafe_allow_html=True)
-            if st.button("Helpdesk Home", key="dash_sidebar"):
+            if st.button("Home", key="dash_sidebar"):
                 st.session_state.page_state = "dashboard"
                 st.rerun()
             # Removed Policy Inquiry and Denied Inquiry buttons from sidebar
