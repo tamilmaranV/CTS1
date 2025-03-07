@@ -312,7 +312,7 @@ def main():
     else:
         with st.sidebar:
             st.markdown(f"**Welcome, {st.session_state.user_email.split('@')[0]}**", unsafe_allow_html=True)
-            if st.button("Dashboard", key="dash_sidebar"):
+            if st.button("Welcome to Patient Helpdesk Assistant", key="dash_sidebar"):
                 st.session_state.page_state = "dashboard"
                 st.rerun()
             # Removed Policy Inquiry and Denied Inquiry buttons from sidebar
@@ -324,7 +324,7 @@ def main():
                 st.rerun()
 
         if st.session_state.page_state == "dashboard":
-            st.markdown('<div class="header">Dashboard</div>', unsafe_allow_html=True)
+            st.markdown('<div class="header">Welcome to Patient Helpdesk Assistant</div>', unsafe_allow_html=True)
             st.markdown('<div class="subheader">Chat with Your Assistant</div>', unsafe_allow_html=True)
             st.markdown('<div class="button-container"></div>', unsafe_allow_html=True)
 
